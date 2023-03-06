@@ -31,7 +31,7 @@ public class Main {
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
             ClassicHttpRequest httpGet = ClassicRequestBuilder.get(link)
                     .build();
-            httpGet.addHeader("user-agent:", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36");
+            httpGet.addHeader("user-agent:", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (HTML, like Gecko) Chrome/110.0.0.0 Safari/537.36");
             return httpclient.execute(httpGet, Main::handleResponse);
         } catch (IOException e) {
             throw new RuntimeException(e);
