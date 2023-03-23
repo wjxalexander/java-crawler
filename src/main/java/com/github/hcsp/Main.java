@@ -17,6 +17,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
     private static final String USER_NAME = "root";
@@ -57,7 +58,7 @@ public class Main {
                     System.out.println(link);
                     Document doc = getAndParseHtml(link);
                     parseURLFromPageAndStoreIntoDB(connection, doc);
-                    storeNewsIntoDb(doc);
+                    storeNewsIntoDb(doc,connection,link);
                     insertLinkToDB(connection, link, "INSERT into LINKS_ALREADY_PROCESSED (LINK) values (?)");
                 }
             }
@@ -68,10 +69,9 @@ public class Main {
     private static void parseURLFromPageAndStoreIntoDB(Connection connection, Document doc) throws SQLException {
         for (Element linkTag : doc.select("a")) {
             String aTag = linkTag.attr("href");
-            if (!isTargetLink(aTag)) {
-                continue;
+            if (isTargetLink(aTag)) {
+                insertLinkToDB(connection, aTag, "INSERT into LINKS_TO_BE_PROCESSED (LINK) values (?)");
             }
-            insertLinkToDB(connection, aTag, "INSERT into LINKS_TO_BE_PROCESSED (LINK) values (?)");
         }
     }
 
@@ -107,14 +107,23 @@ public class Main {
         }
     }
 
-    private static void storeNewsIntoDb(Document doc) {
+    private static void storeNewsIntoDb(Document doc, Connection connection, String link) {
         Elements articleTags = doc.select("article");
         if (!articleTags.isEmpty()) {
             for (Element articleTag : articleTags) {
                 Elements headers = articleTag.select("h1");
                 if (!headers.isEmpty()) {
                     String title = headers.get(0).text();
-                    System.out.println(title);
+                    String content = articleTag.select("p").stream().map(Element::text).collect(Collectors.joining("\n"));
+                    try (PreparedStatement statement = connection.prepareStatement("INSERT INTO NEWS (TITLE, CONTENT, URL, CREATED_AT, MODIFIED_AT) VALUES ( ?,?,?,NOW(),NOW() )")) {
+                        statement.setString(1, title);
+                        statement.setString(2, content);
+                        statement.setString(3, link);
+                        statement.executeUpdate();
+                    } catch (
+                            SQLException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
