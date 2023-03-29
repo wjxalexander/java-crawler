@@ -1,6 +1,5 @@
 package com.github.hcsp;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ClassicHttpRequest;
@@ -15,17 +14,18 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
 import java.util.stream.Collectors;
 
 public class Crawler {
-
-    private static final String USER_NAME = "root";
-    private static final String USER_PASSWORD = "root";
-    private final CrawlerDao dao;
+    private CrawlerDao dao;
     public Crawler(CrawlerDao dao) {
-        this.dao = dao;
+        try {
+            this.dao = (CrawlerDao) dao.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+        ;
     }
 
     private static boolean isTargetLink(String link) {
@@ -46,10 +46,7 @@ public class Crawler {
         }
     }
 
-    @SuppressFBWarnings(value = "DMI_CONSTANT_DB_PASSWORD", justification = "Document why this should be ignored here")
     public void run() throws SQLException {
-        String jdbcUrl = "jdbc:h2:file:~/IdeaProjects/java-crawler/target/news";
-        Connection connection = DriverManager.getConnection(jdbcUrl, USER_NAME, USER_PASSWORD);
         String link;
         while ((link = dao.getNextLinkThenDelete()) != null) {
             dao.updateDatabase(link, "DELETE FROM LINKS_TO_BE_PROCESSED where LINK = ?");
@@ -59,28 +56,28 @@ public class Crawler {
                     Document doc = getAndParseHtml(link);
                     parseURLFromPageAndStoreIntoDB(doc);
                     storeNewsIntoDb(doc, link);
-                    dao.updateDatabase(link, "INSERT into LINKS_ALREADY_PROCESSED (LINK) values (?)");
+                    dao.insertLinkIntoProcessed(link);
                 }
             }
 
         }
     }
 
-    public static void main(String[] args) throws SQLException {
-        new Crawler(new DataObjectAccess()).run();
+    public static void main(String[] args) throws SQLException, IOException {
+        new Crawler(new MyBatisCrawlerDao()).run();
     }
 
     private void parseURLFromPageAndStoreIntoDB(Document doc) throws SQLException {
         for (Element linkTag : doc.select("a")) {
             String aTag = linkTag.attr("href");
             if (isTargetLink(aTag)) {
-                dao.updateDatabase(aTag, "INSERT into LINKS_TO_BE_PROCESSED (LINK) values (?)");
+                dao.insertLinkIntoToBeProcessed(aTag);
             }
         }
     }
 
 
-    private void storeNewsIntoDb(Document doc,String link) throws SQLException {
+    private void storeNewsIntoDb(Document doc, String link) throws SQLException {
         Elements articleTags = doc.select("article");
         if (!articleTags.isEmpty()) {
             for (Element articleTag : articleTags) {

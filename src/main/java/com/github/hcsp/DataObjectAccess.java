@@ -1,13 +1,16 @@
 package com.github.hcsp;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.sql.*;
 
 public class DataObjectAccess implements CrawlerDao{
     private static final String USER_NAME = "root";
     private static final String USER_PASSWORD = "root";
     private static final String jdbcUrl = "jdbc:h2:file:~/IdeaProjects/java-crawler/target/news";
-    private static Connection connection;
+    private Connection connection;
 
+    @SuppressFBWarnings(value = "DMI_CONSTANT_DB_PASSWORD", justification = "Document why this should be ignored here")
     public DataObjectAccess() {
         try {
             this.connection = DriverManager.getConnection(jdbcUrl, USER_NAME, USER_PASSWORD);
@@ -17,7 +20,7 @@ public class DataObjectAccess implements CrawlerDao{
 
     }
 
-    public String getNextLink(String sql) {
+    private String getNextLink(String sql) {
         ResultSet resultSet;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             resultSet = statement.executeQuery();
@@ -31,7 +34,7 @@ public class DataObjectAccess implements CrawlerDao{
     }
 
     public String getNextLinkThenDelete() {
-        String link = getNextLink("select link from LINKS_TO_BE_PROCESSED");
+        String link = getNextLink("select link from LINKS_TO_BE_PROCESSED LIMIT 1");
         if (link != null) {
             updateDatabase(link, "DELETE FROM LINKS_TO_BE_PROCESSED where LINK = ?");
         }
@@ -61,10 +64,6 @@ public class DataObjectAccess implements CrawlerDao{
 
     @Override
     public boolean isLinkProcessed(String link) throws SQLException {
-        return false;
-    }
-
-    public boolean ç(String link) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("SELECT LINK FROM LINKS_ALREADY_PROCESSED where LINK=?")) {
             statement.setString(1, link);
             ResultSet resultSet = statement.executeQuery();
@@ -75,4 +74,18 @@ public class DataObjectAccess implements CrawlerDao{
         return false;
     }
 
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+
+    @Override
+    public void insertLinkIntoProcessed(String link) {
+        updateDatabase(link, "INSERT into LINKS_ALREADY_PROCESSED (LINK) values (?)");
+    }
+
+    @Override
+    public void insertLinkIntoToBeProcessed(String link) {
+        updateDatabase(link, "DELETE FROM LINKS_TO_BE_PROCESSED where LINK = ?");
+    }
 }
