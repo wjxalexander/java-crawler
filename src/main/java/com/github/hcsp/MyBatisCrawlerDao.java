@@ -22,7 +22,7 @@ public class MyBatisCrawlerDao implements CrawlerDao {
     }
 
     @Override
-    public String getNextLinkThenDelete() throws SQLException {
+    public synchronized String getNextLinkThenDelete() throws SQLException {
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
             String url = session.selectOne("com.github.hcsp.selectNextAvailableLink");
             if (url != null) {
@@ -59,10 +59,11 @@ public class MyBatisCrawlerDao implements CrawlerDao {
 
     private void insertLinkIntoCertainTable(String tableName, String link) {
         Map<String, Object> param = new HashMap<>();
-        param.put("tableName", tableName);
+        System.out.println(tableName);
+        param.put("_tableName", tableName);
         param.put("link", link);
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
-            session.insert("com.github.hcsp.insertLink", link);
+            session.insert("com.github.hcsp.insertLink", param);
         }
     }
 

@@ -1,11 +1,11 @@
-CREATE TABLE news(
+CREATE TABLE NEWS(
     id bigint primary key auto_increment,
     title text,
     content text,
     url varchar(1000),
-    created_at timestamp,
-    modified_at timestamp
-);
+    created_at timestamp default now(),
+    modified_at timestamp default now()
+) DEFAULT CHARSET=utf8mb4;
 create TABLE LINKS_TO_BE_PROCESSED(
     link varchar(1000)
 );

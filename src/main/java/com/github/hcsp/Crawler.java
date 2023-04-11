@@ -17,19 +17,15 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.stream.Collectors;
 
-public class Crawler {
+public class Crawler extends Thread {
     private CrawlerDao dao;
+
     public Crawler(CrawlerDao dao) {
-        try {
-            this.dao = (CrawlerDao) dao.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
-        }
-        ;
+        this.dao = dao;
     }
 
     private static boolean isTargetLink(String link) {
-        return link.startsWith("/news/article") || link.equals("https://m.163.com");
+        return link.contains("/news/article") || link.equals("https://m.163.com");
     }
 
 
@@ -46,25 +42,29 @@ public class Crawler {
         }
     }
 
-    public void run() throws SQLException {
-        String link;
-        while ((link = dao.getNextLinkThenDelete()) != null) {
-            dao.updateDatabase(link, "DELETE FROM LINKS_TO_BE_PROCESSED where LINK = ?");
-            if (!dao.isLinkProcessed(link)) {
-                if (isTargetLink(link)) {
-                    System.out.println(link);
-                    Document doc = getAndParseHtml(link);
-                    parseURLFromPageAndStoreIntoDB(doc);
-                    storeNewsIntoDb(doc, link);
-                    dao.insertLinkIntoProcessed(link);
+    @Override
+    public void run() {
+        try {
+            String link;
+            while ((link = dao.getNextLinkThenDelete()) != null) {
+                dao.updateDatabase(link, "DELETE FROM LINKS_TO_BE_PROCESSED where LINK = ?");
+                if (!dao.isLinkProcessed(link)) {
+                    if (isTargetLink(link)) {
+                        System.out.println(link);
+                        Document doc = getAndParseHtml(link);
+                        parseURLFromPageAndStoreIntoDB(doc);
+                        storeNewsIntoDb(doc, link);
+                        dao.insertLinkIntoProcessed(link);
+                    }
                 }
             }
-
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
     public static void main(String[] args) throws SQLException, IOException {
-        new Crawler(new MyBatisCrawlerDao()).run();
+//        new Crawler(new MyBatisCrawlerDao()).run();
     }
 
     private void parseURLFromPageAndStoreIntoDB(Document doc) throws SQLException {

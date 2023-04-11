@@ -1,13 +1,33 @@
 package com.github.hcsp;
 
+import java.time.Instant;
+
 public class News {
     private Integer id;
-    private String link;
+    private String url;
     private String content;
     private String title;
+    private Instant createdAt;
+    private Instant modifiedAt;
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getModifiedAt() {
+        return modifiedAt;
+    }
+
+    public void setModifiedAt(Instant modifiedAt) {
+        this.modifiedAt = modifiedAt;
+    }
 
     public News(String url, String content, String title) {
-        this.link = url;
+        this.url = url;
         this.content = content;
         this.title = title;
     }
@@ -20,12 +40,12 @@ public class News {
         this.id = id;
     }
 
-    public String getLink() {
-        return link;
+    public String getUrl() {
+        return url;
     }
 
-    public void setLink(String link) {
-        this.link = link;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public String getContent() {

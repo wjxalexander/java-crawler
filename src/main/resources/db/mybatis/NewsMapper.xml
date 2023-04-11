@@ -25,7 +25,7 @@
     >
         INSERT INTO
         <choose>
-            <when test="tableName=='LINKS_ALREADY_PROCESSED'">
+            <when test="_tableName == 'LINKS_ALREADY_PROCESSED'">
                 LINKS_ALREADY_PROCESSED
             </when>
             <otherwise>
